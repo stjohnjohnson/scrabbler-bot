@@ -73,8 +73,8 @@ abstract class Game {
   public function __construct(array $options = array()) {
     // Step 1: Load Options
     $defaults = array(
-          'log' => LOG_DEBUG,
-      'lexicon' => '/tmp/lexicon.list'
+          'log' => LOG_ERR,
+      'lexicon' => '/usr/share/dict/words'
     );
     $this->options = array_merge($defaults, $options);
 
