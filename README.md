@@ -38,6 +38,7 @@ Here is a simple bot that will trade 1 letter 50% of the time and play a random
 move the other 50%.
 
 ```php
+<?php
 namespace Scrabbler;
 /** Scrabbler Game */
 require_once 'src/game.php';
