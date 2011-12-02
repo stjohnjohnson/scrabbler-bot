@@ -13,7 +13,9 @@ Usage
 
 To run the bot:
 
-    $ php scrabbler.php path/to/wordlist.txt [BotAlgorithm]
+```bash
+$ php scrabbler.php path/to/wordlist.txt [BotAlgorithm]
+```
 
 The Scrabble Bot has build in support for seven (7) different simple algorithms:
 
@@ -35,25 +37,27 @@ own `chooseAction` method, and don't forget to instantiate an instance of the cl
 Here is a simple bot that will trade 1 letter 50% of the time and play a random
 move the other 50%.
 
-    namespace Scrabbler;
-    /** Scrabbler Game */
-    require_once 'src/game.php';
+```php
+namespace Scrabbler;
+/** Scrabbler Game */
+require_once 'src/game.php';
 
-    class DummyBot extends Game {
-      public function chooseAction(array $moves) {
-        // 50% chance of trading 1 letter (or if there are no moves)
-        if (empty($moves) || mt_rand(0, 1) === 1) {
-          return Move::fromTrade(reset($this->rack));
-        } else {
-          return reset($moves);
-        }
-      }
+class DummyBot extends Game {
+  public function chooseAction(array $moves) {
+    // 50% chance of trading 1 letter (or if there are no moves)
+    if (empty($moves) || mt_rand(0, 1) === 1) {
+      return Move::fromTrade(reset($this->rack));
+    } else {
+      return reset($moves);
     }
-    $foo = new DummyBot(array(
-        'log' => LOG_INFO,
-    'lexicon' => $argv[1]
-    ));
-    $foo->execute();
+  }
+}
+$foo = new DummyBot(array(
+    'log' => LOG_INFO,
+'lexicon' => $argv[1]
+));
+$foo->execute();
+```
 
 
 Testing
@@ -62,4 +66,6 @@ Testing
 If you want to modify the core code, you're more than welcome to.  There is a
 decent series of PHPUnit tests you can run to check that everything is working:
 
-    $ phpunit --coverage-html=.coverage/ tests.php
+```bash
+$ phpunit --coverage-html=.coverage/ tests.php
+```
