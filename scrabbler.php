@@ -20,7 +20,7 @@ class ScrabblePlayer extends Game {
     if (empty($moves)) {
       $this->log(LOG_DEBUG, 'No Moves');
       // Return a pass
-      return new Move(true);
+      return Move::fromTrade();
     }
 
     $best = array_reduce($moves, 'Scrabbler\\ScrabblePlayer::' . $this->options['bot'], reset($moves));

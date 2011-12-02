@@ -174,7 +174,7 @@ class Move {
    * @param string $letters
    * @return Move
    */
-  public static function fromTrade($letters) {
+  public static function fromTrade($letters = '') {
     $move = new Move(true);
     $move->tiles = str_split($letters);
     $move->used = count($move->tiles);
