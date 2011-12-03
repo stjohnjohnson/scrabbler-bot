@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         strict="true"
+         verbose="true"
+         colors="true">
+
+  <testsuites>
+    <testsuite name="Scrabbler Bot">
+      <directory>./tests</directory>
+    </testsuite>
+  </testsuites>
+
+  <listeners>
+    <listener class="UnitListener" file="./tests/unitListener.php"></listener>
+  </listeners>
+</phpunit>

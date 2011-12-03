@@ -68,5 +68,5 @@ If you want to modify the core code, you're more than welcome to.  There is a
 decent series of PHPUnit tests you can run to check that everything is working:
 
 ```bash
-$ phpunit --coverage-html=.coverage/ tests.php
+$ phpunit --coverage-html=.coverage/
 ```
