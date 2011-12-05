@@ -16,7 +16,7 @@ Usage
 To run the bot:
 
 ```bash
-$ php scrabbler.php path/to/wordlist.txt [BotAlgorithm]
+$ scrabbler path/to/wordlist.txt [BotAlgorithm]
 ```
 
 The Scrabble Bot has build in support for seven (7) different simple algorithms:
