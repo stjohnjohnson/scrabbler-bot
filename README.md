@@ -7,6 +7,8 @@ it can easily be modified for different bot algorithms.
 It is based on the paper ["The World’s Fastest Scrabble Program"](http://gtoal.com/wordgames/jacobson+appel/aj.pdf)
 by Andrew W. Appel and Guy J. Jacobson.
 
+Follows Input/Output Specifications as described at [Scrabbler Wiki](https://github.com/stjohnjohnson/Scrabbler/wiki/Bot-Specifications)
+
 
 Usage
 -----
