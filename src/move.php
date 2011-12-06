@@ -18,7 +18,7 @@ use \Exception;
 
 class Move {
   const DIR_ACROSS = 1;
-  const DIR_DOWN = 2;
+  const DIR_DOWN = -1;
 
   public $is_trade;
   public $score = 0;
