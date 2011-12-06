@@ -92,6 +92,8 @@ class BoardTest extends PHPUnit_Framework_TestCase {
    * @depends SetGet
    */
   public function Flipped($board) {
+    $board = clone $board;
+
     // Flip the board
     $board->flip();
 
@@ -104,6 +106,40 @@ class BoardTest extends PHPUnit_Framework_TestCase {
     $this->assertEquals('D', $board->getAt(8, 9));
     $this->assertEquals('O', $board->getAt(9, 9));
     $this->assertEquals('G', $board->getAt(10, 9));
+  }
+
+  /**
+   * @test
+   * @group Board
+   * @group Board.MoveAt
+   * @depends SetGet
+   */
+  public function MoveAt($board) {
+    $board = clone $board;
+
+    // Add a basic word
+    $board->play(Move::fromWord(3, 5, Move::DIR_DOWN, 'TOOL'));
+
+    // Check for moves created
+    $move = $board->getMoveAt(3, 4, Move::DIR_ACROSS);
+    $this->assertEquals('AT', $move->word);
+
+    $move = $board->getMoveAt(4, 4, Move::DIR_ACROSS);
+    $this->assertEquals('TO', $move->word);
+
+    $move = $board->getMoveAt(3, 4, Move::DIR_DOWN);
+    $this->assertEquals('CAT', $move->word);
+
+    $move = $board->getMoveAt(3, 5, Move::DIR_DOWN);
+    $this->assertEquals('TOOL', $move->word);
+
+    // Not used
+    $move = $board->getMoveAt(3, 3, Move::DIR_ACROSS);
+    $this->assertFalse($move);
+
+    // No word
+    $move = $board->getMoveAt(2, 4, Move::DIR_ACROSS);
+    $this->assertFalse($move);
   }
 
   /**

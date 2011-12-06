@@ -292,6 +292,70 @@ class Board {
     return $possible;
   }
 
+  /**
+   * Returns Move found at that location in that direction
+   *
+   * @param int $row
+   * @param int $col
+   * @param int $direction
+   * @return Move
+   * @return false on no word found at that location
+   */
+  public function getMoveAt($row, $col, $direction) {
+    // Check if spot it taken
+    if (!$this->isUsed($row, $col)) {
+      return false;
+    }
+    
+    // Flip if we're checking left-to-right
+    if ($direction === Move::DIR_ACROSS) {
+      $this->flip();
+      list($row, $col) = array($col, $row);
+    }
+
+    // Start with center letter
+    $word = $this->getAt($row, $col);
+
+    // Find letters to the top
+    $i = $row;
+    while ($i - 1 >= 0 && $this->isUsed($i - 1, $col)) {
+      $i--;
+      $word = $this->getAt($i, $col) . $word;
+    }
+    // Store starting Row
+    $start = $i;
+
+    // Now to the bottom
+    $i = $row;
+    while ($i + 1 < Board::SIZE && $this->isUsed($i + 1, $col)) {
+      $i++;
+      $word .= $this->getAt($i, $col);
+    }
+
+    // Flip back
+    if ($direction === Move::DIR_ACROSS) {
+      $this->flip();
+      list($row, $col) = array($col, $start);
+    } else {
+      $row = $start;
+    }
+
+    // If we have a word, create a Move
+    if (strlen($word) > 1) {
+      return Move::fromWord($row, $col, $direction, $word);
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Returns the point value of the word up/down from the current location
+   *
+   * @param int $row
+   * @param int $col
+   * @return int
+   * @return false on no word
+   */
   public function getTopDownPoints($row, $col) {
     // Taken, ignore it
     if ($this->isUsed($row, $col)) {
