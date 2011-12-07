@@ -207,6 +207,18 @@ abstract class Game {
   }
 
   /**
+   * Determines if we can trade
+   *
+   * This is only true if we have at least 7 letters in the bag
+   * (and not in opp rack)
+   * 
+   * @return bool
+   */
+  public function canTrade() {
+    return (count($this->bag) - 7 >= 7);
+  }
+
+  /**
    * Simple Message Logging
    *
    * @param int $level

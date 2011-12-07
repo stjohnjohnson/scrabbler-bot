@@ -145,6 +145,15 @@ class GameTest extends PHPUnit_Framework_TestCase {
     foreach ($moves as $move) {
       $this->assertContains((string) $move, $output);
     }
+
+    // Check Trading
+    $this->assertTrue($game->canTrade());
+    // Reduce the bag to 14
+    $game->bag = array_slice($game->bag, 0, 14);
+    $this->assertTrue($game->canTrade());
+    // Reduce the bag to 13
+    $game->bag = array_slice($game->bag, 0, 13);
+    $this->assertFalse($game->canTrade());
   }
 }
 
