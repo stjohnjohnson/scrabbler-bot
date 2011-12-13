@@ -176,7 +176,7 @@ class Move {
    */
   public static function fromTrade($letters = '') {
     $move = new Move(true);
-    $move->tiles = str_split($letters);
+    $move->tiles = ($letters === '' ? array() : str_split($letters));
     $move->used = count($move->tiles);
     $move->score = 0;
     sort($move->tiles);

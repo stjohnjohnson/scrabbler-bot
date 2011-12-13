@@ -112,9 +112,11 @@ class MoveTest extends PHPUnit_Framework_TestCase {
 
     $move = Move::fromString('?CHN --');
     $this->assertEquals('?CHN --', (string)$move);
+    $this->assertEquals(str_split('?CHN'), $move->tiles);
 
     $move = Move::fromString('--');
     $this->assertEquals('--', (string)$move);
+    $this->assertEmpty($move->tiles);
   }
 
   /**
