@@ -26,6 +26,9 @@ use \Scrabbler\Board,
     \Scrabbler\Game;
 
 class BoardTest extends PHPUnit_Framework_TestCase {
+  private static $_VALIDWORDS = array('DOGGED','BOSS','GOB','DOGGEDLY','SUBWAY',
+      'SUBWAYS','ZVIEW','ZVIEX','OX','WHAT','nope','dog','dead','dread','TAG');
+
   /**
    * @test
    * @group Board
@@ -332,6 +335,78 @@ EOL;
       $this->fail('Expected Exception');
     } catch (Exception $e) {
       $this->assertEquals('Letter is incorrect, have: T want: I', $e->getMessage());
+    }
+  }
+
+  /**
+   * @test
+   * @group Board
+   * @group Board.ValidMove
+   */
+  public function ValidMove() {
+    $board = new Board();
+    $lexicon = new Lexicon();
+    foreach (self::$_VALIDWORDS as $word) {
+      $this->assertTrue($lexicon->addWord($word), $word);
+    }
+
+    $rack = str_split('ABCDEOG');
+
+    // Check some basic failures
+    // Not in the rack
+    try {
+      $board->isValidMove(Move::fromString('CAT H7'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals("'T' used in move but not in pool", $e->getMessage());
+    }
+    try {
+      $board->isValidMove(Move::fromString('?A --'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals("'?' used in move but not in pool", $e->getMessage());
+    }
+
+    // Invalid Word
+    try {
+      $board->isValidMove(Move::fromString('CADEG H7'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals("'CADEG' is not a word in the lexicon", $e->getMessage());
+    }
+
+    // Outside the grid
+    try {
+      $board->isValidMove(Move::fromString('DOG 7O'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals("Move extends outside board limits (6,15)", $e->getMessage());
+    }
+
+    // Placed Not on an Anchor
+    try {
+      $board->isValidMove(Move::fromString('DOG G7'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals('Move was not placed on an anchor', $e->getMessage());
+    }
+
+    // Valid trade
+    $this->assertTrue($board->isValidMove(Move::fromString('DOG --'), $lexicon, $rack));
+
+    // Check the first move on the center square
+    $move = Move::fromString('DOG H7');
+    $this->assertTrue($board->isValidMove($move, $lexicon, $rack));
+
+    // Play move
+    $board->play($move);
+
+    // Now try incorrect word
+    try {
+      $board->isValidMove(Move::fromString('DOG I8'), $lexicon, $rack);
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals("'OD' is not a word in the lexicon", $e->getMessage());
     }
   }
 
