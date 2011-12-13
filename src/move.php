@@ -155,7 +155,7 @@ class Move {
     $move->words = 1;
     $move->word = strtr($word, array(')' => '', '(' => ''));
     $move->len = strlen($move->word);
-    $move->tiles = str_split(preg_replace(array('/[a-z]+/','/\([A-Za-z]+\)/'), array('?',''), $move->raw));
+    $move->tiles = str_split(preg_replace(array('/[a-z]+/','/\([A-Za-z?]+\)/'), array('?',''), $move->raw));
     sort($move->tiles);
     $move->used = count($move->tiles);
     $move->score = 0;

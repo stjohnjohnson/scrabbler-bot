@@ -92,9 +92,15 @@ class MoveTest extends PHPUnit_Framework_TestCase {
   public function FromString() {
     $move = Move::fromString('ABC 2C');
     $this->assertEquals('ABC 2C', (string)$move);
+    $this->assertEquals(str_split('ABC'), $move->tiles);
 
     $move = Move::fromString('C(a)NDY C2');
     $this->assertEquals('C(a)NDY C2', (string)$move);
+    $this->assertEquals(str_split('CDNY'), $move->tiles);
+
+    $move = Move::fromString('(C)A(ND)Y C2');
+    $this->assertEquals('(C)A(ND)Y C2', (string)$move);
+    $this->assertEquals(str_split('AY'), $move->tiles);
 
     try {
       $move = Move::fromString('C(a)NDY CC');
