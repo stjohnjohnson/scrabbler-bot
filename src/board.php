@@ -298,15 +298,16 @@ class Board {
    * @param int $row
    * @param int $col
    * @param int $direction
+   * @param string $letter
    * @return Move
    * @return false on no word found at that location
    */
-  public function getMoveAt($row, $col, $direction) {
+  public function getMoveAt($row, $col, $direction, $letter = null) {
     // Check if spot it taken
-    if (!$this->isUsed($row, $col)) {
+    if (!$this->isUsed($row, $col) && !isset($letter)) {
       return false;
     }
-    
+
     // Flip if we're checking left-to-right
     if ($direction === Move::DIR_ACROSS) {
       $this->flip();
@@ -314,7 +315,11 @@ class Board {
     }
 
     // Start with center letter
-    $word = $this->getAt($row, $col);
+    if (!isset($letter)) {
+      $word = $this->getAt($row, $col);
+    } else {
+      $word = $letter;
+    }
 
     // Find letters to the top
     $i = $row;
@@ -346,6 +351,63 @@ class Board {
     } else {
       return false;
     }
+  }
+
+  /**
+   * Validates if a Move is valid or not
+   *
+   * @param Move $move
+   * @param Lexicon $lexicon
+   * @param array $rack
+   * @return true
+   * @throws Exception
+   */
+  public function isValidMove(Move $move, Lexicon $lexicon, array $rack) {
+    // Validate the tiles are available
+    foreach ($move->tiles as $tile) {
+      if (!in_array($tile, $rack)) {
+        throw new Exception("'$tile' used in move but not in pool");
+      }
+    }
+
+    // All we need to validate for trades are the tiles used
+    if ($move->is_trade) {
+      return true;
+    }
+
+    // Ensure correct word
+    if (!$lexicon->isWord($move->word)) {
+      throw new Exception("'{$move->word}' is not a word in the lexicon");
+    }
+
+    $hasAnchor = false;
+    // All others, loop over the index
+    foreach ($this->walk($move) as $index => $position) {
+      list($row, $col) = $position;
+
+      // Ensure not off the grid
+      if ($row < 0 || $row >= Board::SIZE || $col < 0 || $col >= Board::SIZE) {
+        throw new Exception("Move extends outside board limits ($row,$col)");
+      }
+
+      // Ensure any words made along the way are valid
+      $value = $this->getMoveAt($row, $col, $move->direction * -1, $move->word[$index]);
+      if ($value !== false && !$lexicon->isWord($value->word)) {
+        throw new Exception("'{$value->word}' is not a word in the lexicon");
+      }
+
+      // Check if anchor used
+      if ($this->isAnchor($row, $col)) {
+        $hasAnchor = true;
+      }
+    }
+
+    // Validate anchor was used
+    if (!$hasAnchor) {
+      throw new Exception('Move was not placed on an anchor');
+    }
+
+    return true;
   }
 
   /**
@@ -469,11 +531,12 @@ class Board {
   }
 
   /**
-   * Outputs the grid
+   * Ouputs the grid (optionally hides anchors and bonus squares
    *
+   * @param bool $showAll
    * @return string
    */
-  public function __toString() {
+  public function toString($showAll = true) {
     $output = '    ';
     for ($col = 0; $col < Board::SIZE; $col++) {
       $output .= '_' . str_pad(chr($col + 65), 3, ' ', STR_PAD_BOTH) . '_';
@@ -488,8 +551,10 @@ class Board {
 
         if (strlen($cell) === 1) {
           $output .= str_pad($cell, 3, ' ', STR_PAD_BOTH);
-        } else {
+        } elseif ($showAll) {
           $output .= str_pad($cell, 2) . ($this->isAnchor($row, $col) ? '^' : ' ');
+        } else {
+          $output .= '   ';
         }
 
         $output .= ']';
@@ -498,5 +563,14 @@ class Board {
     }
 
     return $output;
+  }
+
+  /**
+   * Outputs the grid
+   *
+   * @return string
+   */
+  public function __toString() {
+    return $this->toString(true);
   }
 }
