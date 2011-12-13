@@ -22,8 +22,23 @@ require_once 'board.php';
 /** Scrabbler Lexicon */
 require_once 'lexicon.php';
 
+use Exception;
+
 abstract class Game {
-  private $_log = LOG_DEBUG;
+  const LOG_DISABLED = 0;
+  const LOG_ERROR = 1;
+  const LOG_WARNING = 2;
+  const LOG_INFO = 3;
+  const LOG_DEBUG = 4;
+  private $_log_levels = array(
+    self::LOG_DISABLED => 'NONE',
+       self::LOG_ERROR => 'ERROR',
+     self::LOG_WARNING => 'WARNING',
+        self::LOG_INFO => 'INFO',
+       self::LOG_DEBUG => 'DEBUG'
+  );
+
+  private $_log = self::LOG_DISABLED;
   private $_start;
 
   public $options;
@@ -73,7 +88,7 @@ abstract class Game {
   public function __construct(array $options = array()) {
     // Step 1: Load Options
     $defaults = array(
-          'log' => LOG_ERR,
+          'log' => self::LOG_DISABLED,
       'lexicon' => '/usr/share/dict/words'
     );
     $this->options = array_merge($defaults, $options);
@@ -83,15 +98,20 @@ abstract class Game {
     $this->_log = $this->options['log'];
 
     // Step 3: Load all words in lexicon
-    $this->log(LOG_DEBUG, 'Lexicon Loading: ' .
+    $this->log(self::LOG_DEBUG, 'Lexicon Loading: ' .
               (memory_get_usage(true) / 1024 / 1024) . 'mb');
-    $this->lexicon = Lexicon::fromFile($this->options['lexicon']);
-    $this->log(LOG_DEBUG, 'Lexicon Loaded: ' .
+    // If a Lexicon is passed in, use it
+    if (is_a($this->options['lexicon'], 'Scrabbler\\Lexicon')) {
+      $this->lexicon = $this->options['lexicon'];
+    } else {
+      $this->lexicon = Lexicon::fromFile($this->options['lexicon']);
+    }
+    $this->log(self::LOG_DEBUG, 'Lexicon Loaded: ' .
               (memory_get_usage(true) / 1024 / 1024) . 'mb');
 
     // Step 4: Prepare Board
     $this->board = new Board();
-    $this->log(LOG_DEBUG, PHP_EOL . $this->board);
+    $this->log(self::LOG_DEBUG, PHP_EOL . $this->board);
 
     // Step 5: Prepare Variables
     $this->rack = array();
@@ -104,21 +124,24 @@ abstract class Game {
       $this->bag = array_merge($this->bag, array_fill(0, $count, $letter));
     }
     shuffle($this->bag);
-    $this->log(LOG_DEBUG, 'Bag filled: ' . implode(',', $this->bag));
+    $this->log(self::LOG_DEBUG, 'Bag filled: ' . implode(',', $this->bag));
   }
 
   /**
    * Starts IN/OUT conversation
+   *
+   * @param resource $input
    */
-  public function execute() {
+  public function execute($input = STDIN) {
     // Announce Ready
-    echo 'HELLO' . PHP_EOL;
+    $response = 'HELLO';
 
     // Wait for Commands
     do {
-      $this->log(LOG_DEBUG, 'Waiting for Command');
-      echo $this->executeCommand(trim(fgets(STDIN))) . PHP_EOL;
-    } while (true);
+      echo $response . PHP_EOL;
+      $this->log(self::LOG_DEBUG, 'Waiting for Command');
+      $response = $this->executeCommand(trim(fgets($input)));
+    } while ($response !== null);
   }
 
   /**
@@ -138,7 +161,7 @@ abstract class Game {
   public function executeCommand($command) {
     if (strlen($command) == 0) {
       // End of game?
-      exit();
+      return null;
     }
 
     // Get data from command
@@ -146,30 +169,30 @@ abstract class Game {
 
     // Get new letters
     $new_letters = str_split($new_letters);
-    $this->log(LOG_DEBUG, 'New Letters: ' . implode(',', $new_letters));
+    $this->log(self::LOG_DEBUG, 'New Letters: ' . implode(',', $new_letters));
 
     // Add to rack
     $this->rack = array_merge($this->rack, $new_letters);
-    $this->log(LOG_DEBUG, 'Current Rack: ' . implode(',', $this->rack));
+    $this->log(self::LOG_DEBUG, 'Current Rack: ' . implode(',', $this->rack));
 
     // Remove letters from bag
     foreach ($new_letters as $letter) {
       unset($this->bag[array_search($letter, $this->bag)]);
     }
-    $this->log(LOG_DEBUG, 'Bag: ' . implode(',', $this->bag));
+    $this->log(self::LOG_DEBUG, 'Bag: ' . implode(',', $this->bag));
 
     // Figure out opponent's move
     if (!empty($opponent_move)) {
       $opponent_move = Move::fromString($opponent_move, $this->board);
       $this->board->play($opponent_move, $this->bag);
       $this->score_opp += $opponent_move->score;
-      $this->log(LOG_DEBUG, 'Opponent Move: ' . $opponent_move . ' ' . $opponent_move->score);
-      $this->log(LOG_DEBUG, PHP_EOL . $this->board);
+      $this->log(self::LOG_DEBUG, 'Opponent Move: ' . $opponent_move . ' ' . $opponent_move->score);
+      $this->log(self::LOG_DEBUG, PHP_EOL . $this->board);
     }
 
     // Find words to play
     $moves = $this->lexicon->findWords($this->board, $this->rack);
-    $this->log(LOG_DEBUG, 'Number of moves: ' . count($moves));
+    $this->log(self::LOG_DEBUG, 'Number of moves: ' . count($moves));
 
     // Choose Best Move
     $move = $this->chooseAction($moves);
@@ -177,8 +200,19 @@ abstract class Game {
     // Play internally
     $this->board->play($move, $this->rack);
     $this->score_mine += $move->score;
-    $this->log(LOG_DEBUG, 'Self Move: ' . $move . ' ' . $move->score);
-    $this->log(LOG_DEBUG, PHP_EOL . $this->board);
+    $this->log(self::LOG_DEBUG, 'Self Move: ' . $move . ' ' . $move->score);
+    $this->log(self::LOG_DEBUG, PHP_EOL . $this->board);
+
+    // Remove tiles from rack and into bag
+    if ($move->is_trade) {
+      $this->bag = array_merge($move->tiles, $this->bag);
+      foreach ($move->tiles as $tile) {
+        $i = array_search($tile, $this->rack);
+        if ($i !== false) {
+          unset($this->rack[$i]);
+        }
+      }
+    }
 
     // Output
     return $move;
@@ -207,11 +241,123 @@ abstract class Game {
   }
 
   /**
+   * Simulates an entire game against another Bot
+   *
+   * @param Game $opponent
+   * @param bool $meFirst
+   * @return bool
+   */
+  public function simulate(Game $opponent, $meFirst = true) {
+    // Use some internal variables
+    $board = new Board();
+    $bag = $this->bag;
+
+    $scores = array(0, 0);
+    $previous = array();
+    $players = array($this, $opponent);
+    $trades = 0;
+
+    // Generate letters
+    shuffle($bag);
+    $previous[0] = array(implode('', array_splice($bag, 0, 7)), '--');
+    $previous[1] = array(implode('', array_splice($bag, 0, 7)), '--');
+    $racks = array(str_split($previous[0][0]), str_split($previous[1][0]));
+
+    $this->log(self::LOG_INFO, 'Game Starting');
+
+    for ($index = (int)!$meFirst;; $index = (int)!$index) {
+      try {
+        // Run command on player
+        $move = '';
+        $move = (string) $players[$index]->executeCommand(implode(':', $previous[$index]));
+        $move = Move::fromString($move, $board);
+
+        // Validate move
+        $board->isValidMove($move, $this->lexicon, $racks[$index]);
+
+        // Store score
+        $scores[$index] += $move->score;
+
+        // Log the move
+        $this->log(self::LOG_INFO, ($index === 0 ? 'Me' : 'Opp') . "\t" .
+                              str_pad($move, 20) . "\t" .
+                              str_pad($scores[$index], 4) . "\t" .
+                              implode('', $racks[$index]));
+
+        // Play move
+        $board->play($move, $racks[$index]);
+
+        // Store
+        $previous[(int)!$index][1] = (string) $move;
+
+        // Pick new letters
+        shuffle($bag);
+        if ($move->used > count($bag)) {
+          $move->used = count($bag);
+        }
+        $previous[$index][0] = implode('', array_splice($bag, 0, $move->used));
+
+        // Trade letters
+        if ($move->is_trade) {
+          $bag = array_merge($move->tiles, $bag);
+          foreach ($move->tiles as $tile) {
+            $i = array_search($tile, $racks[$index]);
+            if ($i !== false) {
+              unset($racks[$index][$i]);
+            }
+          }
+
+          $trades++;
+        } else {
+          $trades = 0;
+        }
+
+        // Add letters to internal rack
+        if (!empty($previous[$index][0])) {
+          $racks[$index] = array_merge($racks[$index], str_split($previous[$index][0]));
+        }
+
+        // If we've traded 6 times in a row or our rack is empty, end game
+        if ($trades >= 6 || empty($racks[$index])) {
+          $this->log(self::LOG_INFO, "Game Ending: " . ($trades >= 6 ? 'No More Moves' : 'Out of Letters'));
+          break;
+        }
+      } catch (Exception $e) {
+        $this->log(self::LOG_ERROR, "Error with " . ($index === 0 ? 'Me' : 'Opp'));
+        $this->log(self::LOG_ERROR, "P$index\t" . $e->getMessage());
+        $this->log(self::LOG_ERROR, "P$index\tCmd: " . implode(':', $previous[$index]));
+        $this->log(self::LOG_ERROR, "P$index\tMove: " . $move);
+        $this->log(self::LOG_ERROR, "P$index\tRack: " . implode('', $racks[$index]));
+        $this->log(self::LOG_ERROR, "P$index\tBoard: " . PHP_EOL . $board);
+        return false;
+      }
+    }
+
+    // Empty all the points
+    for ($i = 0; $i < 2; $i++) {
+      foreach ($racks[$i] as $letter) {
+        $scores[$i] -= $board->getLetterPoints($letter);
+        if (empty($previous[$index][0])) {
+          $scores[$index] += $board->getLetterPoints($letter);
+        }
+      }
+    }
+
+    // End game
+    $this->log(self::LOG_INFO, "__\tScore\tRack");
+    $this->log(self::LOG_INFO, "Me\t{$scores[0]}\t" . implode('', $racks[0]));
+    $this->log(self::LOG_INFO, "Opp\t{$scores[1]}\t" . implode('', $racks[1]));
+    $this->log(self::LOG_INFO, PHP_EOL . $board->toString(false));
+
+    return true;
+  }
+
+  /**
    * Determines if we can trade
    *
    * This is only true if we have at least 7 letters in the bag
    * (and not in opp rack)
-   * 
+   *
    * @return bool
    */
   public function canTrade() {
@@ -226,7 +372,15 @@ abstract class Game {
    */
   public function log($level, $message) {
     if ($level <= $this->_log) {
-      error_log(sprintf('%5.2f: %s', microtime(true) - $this->_start, $message));
+      error_log(sprintf('%5.2f %s: %s', microtime(true) - $this->_start, $this->_log_levels[$level], $message));
     }
+  }
+
+  /**
+   * Magic method for cloning
+   *  - Perform deep clone on board
+   */
+  public function __clone() {
+    $this->board = clone $this->board;
   }
 }
