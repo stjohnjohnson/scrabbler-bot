@@ -336,6 +336,16 @@ EOL;
     } catch (Exception $e) {
       $this->assertEquals('Letter is incorrect, have: T want: I', $e->getMessage());
     }
+
+    // Ensure letters get removed
+    $pool = array('A','B','C','D');
+    $board->play(Move::fromString('CAD A1'), $pool);
+    $this->assertEquals(array('B'), $pool);
+
+    // During trade as well
+    $pool = array('A','B','C','D');
+    $board->play(Move::fromString('BC --'), $pool);
+    $this->assertEquals(array('A','D'), $pool);
   }
 
   /**

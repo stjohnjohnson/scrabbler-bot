@@ -138,6 +138,15 @@ class Board {
    * @return Board
    */
   public function play(Move $move, array &$pool = array()) {
+    // Cleanup from internal pool (rack or bag)
+    foreach ($move->tiles as $letter) {
+      $index = array_search($letter, $pool);
+      if ($index !== false) {
+        array_splice($pool, $index, 1);
+      }
+    }
+
+    // Walk over each move
     foreach ($this->walk($move) as $index => $pos) {
       list($row, $col) = $pos;
       // Validate
@@ -147,15 +156,6 @@ class Board {
         }
       } else {
         $this->setAt($row, $col, $move->word[$index]);
-
-        // What letter did we use
-        $letter = $move->word[$index];
-        if (ctype_lower($letter)) {
-          $letter = '?';
-        }
-
-        // Cleanup from internal pool (rack or bag)
-        unset($pool[array_search($letter, $pool)]);
       }
     }
 
