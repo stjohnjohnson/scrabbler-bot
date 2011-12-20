@@ -24,6 +24,8 @@ class Move {
   public $score = 0;
   public $rank = 0;
   public $used = 0;
+  public $row = -1;
+  public $col = -1;
   public $direction;
   public $tiles = array();
   public $multiples = array();
