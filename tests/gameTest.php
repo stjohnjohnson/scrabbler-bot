@@ -114,6 +114,7 @@ class GameTest extends PHPUnit_Framework_TestCase {
     // Validate Bag (-1 A, -1C)
     $this->assertEquals(8, count(array_keys($game->bag, 'A')));
     $this->assertEquals(1, count(array_keys($game->bag, 'C')));
+    $this->assertEquals(6, count(array_keys($game->bag, 'T')));
     // Validate Scores
     $this->assertEquals(0, $game->score_mine);
     $this->assertEquals(0, $game->score_opp);
@@ -132,9 +133,10 @@ class GameTest extends PHPUnit_Framework_TestCase {
     // Validate Scores
     $this->assertEquals(4, $game->score_mine);
     $this->assertEquals(7, $game->score_opp);
-    // Validate Bag (-1 A, -1C)
+    // Validate Bag (-1 A, -1C, -1T)
     $this->assertEquals(7, count(array_keys($game->bag, 'A')));
     $this->assertEquals(0, count(array_keys($game->bag, 'C')));
+    $this->assertEquals(5, count(array_keys($game->bag, 'T')));
 
     // Test Last Move
     $move = $game->executeCommand('');
@@ -350,7 +352,7 @@ class GameTest extends PHPUnit_Framework_TestCase {
             'log' => Game::LOG_INFO,
         'lexicon' => $lexicon
     ));
-    $opponent = new Mock_Game_Trader(array(
+    $opponent = new Mock_Game_Skipper(array(
         'lexicon' => $lexicon
     ));
     $game->bag = array_slice($game->bag, 0, 15);
@@ -361,6 +363,39 @@ class GameTest extends PHPUnit_Framework_TestCase {
     $this->assertEquals(1, preg_match('/Game Starting/', $contents), $contents);
     $this->assertEquals(1, preg_match('/Game Ending: No More Moves/', $contents), $contents);
     $this->assertGreaterThan(30, count(explode(PHP_EOL, $contents)));
+  }
+
+  /**
+   * @test
+   * @group Game
+   * @group Game.Simulate
+   * @group Game.SimulateTradeTooMuch
+   */
+  public function SimulateTradeTooMuch() {
+    // Create Empty Lexicon
+    $lexicon = new Lexicon();
+
+    // Setup Log Location
+    $filename = '/tmp/phpunit.err';
+    file_put_contents($filename, '');
+    ini_set('error_log', $filename);
+
+    // Create new games
+    $game = new Mock_Game_Trader(array(
+            'log' => Game::LOG_INFO,
+        'lexicon' => $lexicon
+    ));
+    $opponent = new Mock_Game_Trader(array(
+        'lexicon' => $lexicon
+    ));
+    $game->bag = array_slice($game->bag, 0, 15);
+
+    // Basic match
+    $game->simulate($opponent);
+    $contents = file_get_contents($filename);
+    $this->assertEquals(1, preg_match('/Game Starting/', $contents), $contents);
+    $this->assertEquals(1, preg_match('/ERROR: P0	Unable to Trade while bag contains 1 tiles - need 7+/', $contents), $contents);
+    $this->assertEquals(26, count(explode(PHP_EOL, $contents)));
   }
 }
 
@@ -377,6 +412,12 @@ class Mock_Game_Simple extends Game {
 class Mock_Game_Trader extends Game {
   public function chooseAction(array $moves) {
     return Move::fromTrade(implode('', array_slice($this->rack, 0, 2)));
+  }
+}
+
+class Mock_Game_Skipper extends Game {
+  public function chooseAction(array $moves) {
+    return Move::fromTrade('');
   }
 }
 

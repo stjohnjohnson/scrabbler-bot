@@ -177,7 +177,10 @@ abstract class Game {
 
     // Remove letters from bag
     foreach ($new_letters as $letter) {
-      unset($this->bag[array_search($letter, $this->bag)]);
+      $index = array_search($letter, $this->bag);
+      if ($index !== false) {
+        array_splice($this->bag, $index, 1);
+      }
     }
     $this->log(self::LOG_DEBUG, 'Bag: ' . implode(',', $this->bag));
 
@@ -207,9 +210,9 @@ abstract class Game {
     if ($move->is_trade) {
       $this->bag = array_merge($move->tiles, $this->bag);
       foreach ($move->tiles as $tile) {
-        $i = array_search($tile, $this->rack);
-        if ($i !== false) {
-          unset($this->rack[$i]);
+        $index = array_search($tile, $this->rack);
+        if ($index !== false) {
+          array_splice($this->rack, $index, 1);
         }
       }
     }
@@ -287,26 +290,26 @@ abstract class Game {
         // Play move
         $board->play($move, $racks[$index]);
 
-        // Store
+        // Store Move
         $previous[(int)!$index][1] = (string) $move;
+
+        // Prevent trading <7 tiles
+        if ($move->is_trade && $move->used > 0 && count($bag) < 7) {
+          throw new Exception('Unable to Trade while bag contains ' . count($bag) . ' tiles - need 7+');
+        }
 
         // Pick new letters
         shuffle($bag);
-        if ($move->used > count($bag)) {
-          $move->used = count($bag);
-        }
-        $previous[$index][0] = implode('', array_splice($bag, 0, $move->used));
+        $remove = min($move->used, count($bag));
+        $previous[$index][0] = implode('', array_splice($bag, 0, $remove));
 
-        // Trade letters
+        // Put traded letters back in bag
         if ($move->is_trade) {
           $bag = array_merge($move->tiles, $bag);
-          foreach ($move->tiles as $tile) {
-            $i = array_search($tile, $racks[$index]);
-            if ($i !== false) {
-              unset($racks[$index][$i]);
-            }
-          }
+        }
 
+        // Keep track of trades
+        if ($move->is_trade) {
           $trades++;
         } else {
           $trades = 0;
