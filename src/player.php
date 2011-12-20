@@ -23,6 +23,8 @@ require_once 'game.php';
 /** Scrabbler Move */
 require_once 'move.php';
 
+use \Exception;
+
 class Player extends Game {
   /**
    * Adds default option of HighestScore
@@ -52,10 +54,45 @@ class Player extends Game {
       return Move::fromTrade();
     }
 
+    // Error out if selecting invalid method
+    if (!method_exists($this, $this->options['method'])) {
+      throw new Exception('Unknown Player Method: ' . $this->options['method']);
+    }
+
+    // Training bot only picks between lowest and a trade
+    if (strtolower($this->options['method']) === 'training') {
+      // Add trade
+      $trade = '';
+      if ($this->canTrade()) {
+        $trade = implode('', array_slice($this->rack, 0, 2));
+      }
+
+      $moves = array(
+        array_reduce($moves, 'self::LowestScore', reset($moves)),
+        Move::fromTrade($trade)
+      );
+    }
+
+    // Run reduce method on the list of moves
     $best = array_reduce($moves, 'self::' . $this->options['method'], reset($moves));
     $this->log(self::LOG_DEBUG, 'Best Move: ' . $best);
 
     return $best;
+  }
+
+  /**
+   * Returns MoveA 50% of the time, MoveB 50% of the time
+   *
+   * @param Move $moveA
+   * @param Move $moveB
+   * @return Move
+   */
+  public static function Training(Move $moveA, Move $moveB) {
+    if (mt_rand(0, 1) === 1) {
+      return $moveA;
+    } else {
+      return $moveB;
+    }
   }
 
   /**

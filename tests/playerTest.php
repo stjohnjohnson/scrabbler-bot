@@ -64,7 +64,36 @@ class PlayerTest extends PHPUnit_Framework_TestCase {
     $move = $player->chooseAction(array($moveA, $moveB));
     $this->assertEquals($moveA, $move);
 
-    return $player;
+    // Try invalid
+    $player->options['method'] = 'FailFailFail';
+    try {
+      $move = $player->chooseAction(array($moveA, $moveB));
+      $this->fail('Missed Exception');
+    } catch (Exception $e) {
+      $this->assertEquals('Unknown Player Method: FailFailFail', $e->getMessage());
+    }
+
+    // Try training
+    $player->options['method'] = 'training';
+
+    // Seed random number
+    mt_srand(42);
+
+    // Lowest
+    $move = $player->chooseAction(array($moveA, $moveB));
+    $this->assertEquals($moveB, $move);
+    // Lowest
+    $move = $player->chooseAction(array($moveA, $moveB));
+    $this->assertEquals($moveB, $move);
+    // Trade
+    $move = $player->chooseAction(array($moveA, $moveB));
+    $this->assertEquals(Move::fromTrade(), $move);
+    // Trade
+    $move = $player->chooseAction(array($moveA, $moveB));
+    $this->assertEquals(Move::fromTrade(), $move);
+
+    // Clear random number
+    mt_srand(null);
   }
 
   /**
